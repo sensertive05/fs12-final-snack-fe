@@ -94,7 +94,7 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
 
   if (isError) {
     return (
-      <main className="flex min-h-[calc(100vh-88px)] w-full flex-col items-center justify-center gap-3 bg-surface-muted px-6">
+      <main className="flex min-h-[calc(100vh-54px)] w-full flex-col items-center justify-center gap-3 bg-surface-muted px-6 md:min-h-[calc(100vh-64px)] xl:min-h-[calc(100vh-88px)]">
         <p className="m-0 text-center text-base text-snack-black-100">
           사용자 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
         </p>
@@ -116,10 +116,6 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
   const role = profile?.role;
   if (!role || !canAccessPath(pathname, role)) {
     return <ForbiddenPage />;
-  }
-
-  return children;
-};
   }
 
   return children;

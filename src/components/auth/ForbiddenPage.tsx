@@ -6,7 +6,7 @@ import { CommonImage } from "@/components/ui/CommonImage";
  */
 export function ForbiddenPage() {
   return (
-    <main className="flex min-h-[calc(100vh-88px)] w-full items-center justify-center bg-surface-muted px-6">
+    <main className="flex min-h-[calc(100vh-54px)] w-full items-center justify-center bg-surface-muted px-6 md:min-h-[calc(100vh-64px)] xl:min-h-[calc(100vh-88px)]">
       <section
         aria-labelledby="forbidden-title"
         className="flex flex-col items-center gap-6 text-center xl:gap-10"
