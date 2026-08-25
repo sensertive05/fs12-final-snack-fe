@@ -38,6 +38,23 @@ const renderGuard = () => {
   );
 };
 
+/**
+ * 실제 app/layout.tsx는 <AppHeader />와 <RouteGuard> 형제로 두고
+ * RouteGuard가 children만 교체합니다. GNB가 Forbidden 상태에서도
+ * 유지되는지는 이 구성 그대로 렌더링해서 검증합니다.
+ */
+const renderGuardWithLayout = () => {
+  const queryClient = new QueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <div data-testid="gnb">GNB</div>
+      <RouteGuard>
+        <div>protected-content</div>
+      </RouteGuard>
+    </QueryClientProvider>,
+  );
+};
+
 const profileQueryResult = (
   overrides: Record<string, unknown>,
 ): ReturnType<typeof useMyProfile> =>
@@ -140,4 +157,76 @@ describe("RouteGuard", () => {
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
     expect(routerReplace).not.toHaveBeenCalled();
   });
+});
+
+describe("RouteGuard 역할별 경로 접근", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, "token");
+    routerReplace.mockClear();
+  });
+
+  it.each([
+    ["USER", "/admin"],
+    ["USER", "/budget"],
+    ["USER", "/purchase/requests"],
+    ["USER", "/purchase/history"],
+    ["ADMIN", "/admin"],
+    ["ADMIN", "/budget"],
+  ] as const)(
+    "%s로 %s 접속 시 Forbidden UI + URL 유지 + GNB 유지",
+    async (role, path) => {
+      pathname = path;
+      mockedUseMyProfile.mockReturnValue(
+        profileQueryResult({ data: { role } as never }),
+      );
+
+      renderGuardWithLayout();
+
+      expect(await screen.findByText("권한이 없습니다")).toBeInTheDocument();
+      expect(screen.queryByText("protected-content")).not.toBeInTheDocument();
+      // URL 유지: /login 등으로 리다이렉트하지 않음
+      expect(routerReplace).not.toHaveBeenCalled();
+      // GNB 유지: layout처럼 형제로 렌더된 GNB는 그대로 남아있음
+      expect(screen.getByTestId("gnb")).toBeInTheDocument();
+    },
+  );
+
+  it.each([
+    ["SUPER_ADMIN", "/admin"],
+    ["SUPER_ADMIN", "/budget"],
+    ["SUPER_ADMIN", "/purchase/requests"],
+    ["SUPER_ADMIN", "/purchase/history"],
+  ] as const)("%s로 %s 접속 시 정상 진행된다", async (role, path) => {
+    pathname = path;
+    mockedUseMyProfile.mockReturnValue(
+      profileQueryResult({ data: { role } as never }),
+    );
+
+    renderGuard();
+
+    expect(await screen.findByText("protected-content")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["USER", "/products"],
+    ["USER", "/cart"],
+    ["USER", "/purchase/my-requests"],
+    ["ADMIN", "/products"],
+    ["SUPER_ADMIN", "/products"],
+  ] as const)(
+    "%s로 허용된 경로 %s 접속 시 정상 표시된다",
+    async (role, path) => {
+      pathname = path;
+      mockedUseMyProfile.mockReturnValue(
+        profileQueryResult({ data: { role } as never }),
+      );
+
+      renderGuard();
+
+      expect(
+        await screen.findByText("protected-content"),
+      ).toBeInTheDocument();
+    },
+  );
 });
